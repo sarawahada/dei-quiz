@@ -1,87 +1,102 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { useParams } from "react-router-dom";
 
 const socket = io();
 
-export default function PlayerPage() {
-  const { roomId } = useParams();
+export default function PlayerPage({ roomId }) {
   const [name, setName] = useState("");
-  const [img, setImg] = useState("");
   const [joined, setJoined] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [totalQuestions, setTotalQuestions] = useState(0);
+  const [message, setMessage] = useState("Waiting for host...");
+  const [question, setQuestion] = useState(null);
   const [results, setResults] = useState(null);
+  const [sharedList, setSharedList] = useState([]);
+  const [topShared, setTopShared] = useState(false);
 
   useEffect(() => {
-    socket.on("question", ({ text, index, total }) => {
-      setCurrentQuestion(text);
-      setQuestionIndex(index);
-      setTotalQuestions(total);
+    socket.on("question", (q) => {
+      setQuestion(q);
+      setMessage("");
     });
 
-    socket.on("showResults", (data) => setResults(data));
+    socket.on("showResults", (res) => {
+      setResults(res);
+      setQuestion(null);
+      setMessage("");
+    });
 
-    return () => socket.off();
+    socket.on("updateShared", (list) => setSharedList(list));
+
+    return () => {
+      socket.off("question");
+      socket.off("showResults");
+      socket.off("updateShared");
+    };
   }, []);
 
   const joinRoom = () => {
-    if (!name) return alert("Enter your name");
-    socket.emit("join", { roomId, name, img });
+    if (!name) return;
+    socket.emit("join", { roomId, name, img: "" });
     setJoined(true);
   };
 
-  const submitAnswer = (value) => {
+  const answerQuestion = (value) => {
     socket.emit("answer", { roomId, value });
-    setCurrentQuestion(null);
+    setQuestion(null);
+    setMessage("Waiting for other players...");
   };
 
-  const shareTop = () => socket.emit("shareTop", roomId);
+  const shareTopCharacter = () => {
+    socket.emit("shareTop", roomId);
+    setTopShared(true);
+  };
 
-  if (!joined)
+  if (!joined) {
     return (
-      <div className="p-6 text-center">
-        <h3>Enter your name to join room {roomId}</h3>
-        <input
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="border p-2 m-2"
-        />
-        <button onClick={joinRoom} className="btn">
-          Join
-        </button>
+      <div style={{ textAlign: "center", padding: 20 }}>
+        <h3>Enter your name:</h3>
+        <input value={name} onChange={(e) => setName(e.target.value)} />
+        <button onClick={joinRoom}>Join Room</button>
       </div>
     );
+  }
 
-  if (results)
-    return (
-      <div className="p-6 text-center">
-        <h3>Results:</h3>
-        <pre>{JSON.stringify(results, null, 2)}</pre>
-        <button onClick={shareTop} className="btn mt-2">
-          Share Top Character
-        </button>
-      </div>
-    );
-
-  if (currentQuestion)
-    return (
-      <div className="p-6 text-center">
-        <h4>
-          Question {questionIndex}/{totalQuestions}
-        </h4>
-        <p>{currentQuestion}</p>
-        <div className="mt-4">
-          {[1, 2, 3, 4, 5].map((v) => (
-            <button key={v} onClick={() => submitAnswer(v)} className="btn m-1">
-              {v}
+  return (
+    <div style={{ textAlign: "center", padding: 20 }}>
+      {question ? (
+        <>
+          <h3>Question {question.index}/{question.total}</h3>
+          <p>{question.text}</p>
+          {[1, 2, 3, 4].map((v) => (
+            <button key={v} onClick={() => answerQuestion(v)}>
+              Option {v}
             </button>
           ))}
-        </div>
-      </div>
-    );
+        </>
+      ) : results ? (
+        <div>
+          <h3>Your Results:</h3>
+          <p>Top Character: {results.topTwo[0][0]}</p>
+          <p>Secondary: {results.topTwo[1][0]}</p>
+          {results.hybrid && <p>Hybrid: {results.hybrid}</p>}
 
-  return <div className="p-6 text-center">Waiting for next question...</div>;
+          {!topShared && (
+            <button onClick={shareTopCharacter}>Share My Top Character</button>
+          )}
+
+          {sharedList.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h4>Shared Top Characters:</h4>
+              <ul>
+                {sharedList.map((p, i) => (
+                  <li key={i}>{p.name}: {p.topCharacter}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p>{message}</p>
+      )}
+    </div>
+  );
 }

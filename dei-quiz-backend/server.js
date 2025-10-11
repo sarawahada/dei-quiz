@@ -3,44 +3,42 @@ import http from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
-import quiz from "./quiz.js"; // make sure quiz.js exports an array of questions
+import quiz from "./quiz.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" } // allow frontend connections
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
-// State
 let rooms = {}; // { roomId: { players: {}, currentQuestionIndex, sharedTop: [] } }
 
-app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
-
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
+// --- Socket.io ---
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
-  // Host creates a room
+  // Host creates room
   socket.on("createRoom", () => {
-    const roomId = socket.id; // use host socket id as roomId
+    const roomId = socket.id;
     rooms[roomId] = { players: {}, currentQuestionIndex: -1, sharedTop: [] };
     socket.join(roomId);
     io.to(socket.id).emit("roomCreated", roomId);
-    console.log("Room created:", roomId);
   });
 
-  // Player joins a room
+  // Player joins room
   socket.on("join", ({ roomId, name, img }) => {
     const room = rooms[roomId];
     if (!room) return;
+
     room.players[socket.id] = { name, img, answers: [], sharedTop: null };
     socket.join(roomId);
+
     io.to(roomId).emit(
       "updatePlayers",
       Object.values(room.players).map((p) => ({ name: p.name, img: p.img }))
@@ -66,7 +64,6 @@ io.on("connection", (socket) => {
 
     player.answers.push({ question: currentQ.text, value });
 
-    // Check if all players answered
     const totalPlayers = Object.keys(room.players).length;
     const answeredCount = Object.values(room.players).filter(
       (p) => p.answers.length === room.currentQuestionIndex + 1
@@ -82,29 +79,11 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Player shares top character
-  socket.on("shareTop", (roomId) => {
-    const room = rooms[roomId];
-    if (!room) return;
-    const p = room.players[socket.id];
-    if (!p || p.sharedTop) return;
-
-    const characters = calculateCharacters(p);
-    const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
-    const topCharacter = sorted[0][0];
-
-    p.sharedTop = topCharacter;
-    room.sharedTop.push({ name: p.name, img: p.img, topCharacter });
-    io.to(roomId).emit("updateShared", room.sharedTop);
-  });
-
+  // Disconnect
   socket.on("disconnect", () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
       if (room.players[socket.id]) delete room.players[socket.id];
-      room.sharedTop = room.sharedTop.filter(
-        (p) => Object.values(room.players).some((pl) => pl.name === p.name)
-      );
       io.to(roomId).emit(
         "updatePlayers",
         Object.values(room.players).map((p) => ({ name: p.name, img: p.img }))
@@ -113,7 +92,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Helpers
+// --- Helpers ---
 function sendQuestionToAll(roomId) {
   const room = rooms[roomId];
   if (!room) return;
@@ -166,6 +145,23 @@ function sendResultsToAll(roomId) {
   for (const id in results) io.to(id).emit("showResults", results[id]);
   io.to(roomId).emit("allResults", results);
 }
+// Player shares top character
+socket.on("shareTop", (roomId) => {
+  const room = rooms[roomId];
+  if (!room) return;
+  const p = room.players[socket.id];
+  if (!p || p.sharedTop) return;
+
+  const characters = calculateCharacters(p);
+  const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
+  const topCharacter = sorted[0][0];
+
+  p.sharedTop = topCharacter;
+  room.sharedTop.push({ name: p.name, img: p.img, topCharacter });
+
+  // Send the updated shared list to everyone
+  io.to(roomId).emit("updateShared", room.sharedTop);
+});
 
 const PORT = process.env.PORT || 2011;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
