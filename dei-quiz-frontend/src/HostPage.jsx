@@ -38,7 +38,7 @@ export default function HostPage() {
       ) : (
         <div>
           <h3>Scan this QR code to join:</h3>
-          <QRCodeCanvas value={`https://yourdomain.com/play/${roomId}`} size={200} />
+          <QRCode value={`https://dei-quiz1.onrender.com/join/${roomId}`} />
           <p>Room ID: {roomId}</p>
 
           <h4>Players:</h4>
