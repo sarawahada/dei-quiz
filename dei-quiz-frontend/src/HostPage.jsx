@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import  QRCode  from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import { io } from "socket.io-client";
 
 const socket = io();
@@ -9,43 +9,50 @@ export default function HostPage() {
   const [players, setPlayers] = useState([]);
 
   useEffect(() => {
-  socket.on("updateShared", (list) => setShared(list));
-  return () => socket.off("updateShared");
-}, []);
+    socket.on("roomCreated", (id) => {
+      setRoomId(id);
+    });
 
-{shared.length > 0 && (
-  <div>
-    <h3>Players' Shared Top Characters:</h3>
-    <ul>
-      {shared.map((p, i) => (
-        <li key={i}>
-          {p.name}: {p.topCharacter}
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
+    socket.on("updatePlayers", (list) => {
+      setPlayers(list);
+    });
 
+    return () => {
+      socket.off("roomCreated");
+      socket.off("updatePlayers");
+    };
+  }, []);
 
-  const createRoom = () => socket.emit("createRoom");
-  const startQuiz = () => socket.emit("hostStart", roomId);
+  const createRoom = () => {
+    socket.emit("createRoom");
+  };
+
+  const startQuiz = () => {
+    socket.emit("hostStart", roomId);
+  };
 
   return (
     <div style={{ textAlign: "center", padding: 20 }}>
       {!roomId ? (
         <button onClick={createRoom}>Create Room</button>
       ) : (
-        <>
-          <h3>Scan QR to join:</h3>
-          <QRCode value={`https://dei-quiz1.onrender.com/join/${roomId}`} />
+        <div>
+          <h3>Scan this QR code to join:</h3>
+          <QRCodeCanvas value={`https://yourdomain.com/play/${roomId}`} size={200} />
+          <p>Room ID: {roomId}</p>
 
-          <h4>Players ({players.length}):</h4>
-          <ul>{players.map((p, i) => <li key={i}>{p.name}</li>)}</ul>
+          <h4>Players:</h4>
+          <ul>
+            {players.map((p, i) => (
+              <li key={i}>{p.name}</li>
+            ))}
+          </ul>
 
-          {players.length > 0 && <button onClick={startQuiz}>Start Quiz</button>}
-        </>
+          {players.length > 0 && (
+            <button onClick={startQuiz}>Start Quiz</button>
+          )}
+        </div>
       )}
     </div>
   );
-  
 }
