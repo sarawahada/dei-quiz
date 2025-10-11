@@ -1,0 +1,16 @@
+{
+  "name": "dei-quiz",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node ./backend/server.js",
+    "build": "cd frontend && npm install && npm run build"
+
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1",
+    "concurrently": "^8.2.0"
+  }
+}
