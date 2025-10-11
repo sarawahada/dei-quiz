@@ -52,7 +52,7 @@ export default function HostPage() {
       {roomId && (
         <div>
           <p>Room ID: {roomId}</p>
-          <QRCodeCanvas value={`https://dei-quiz1.onrender.com?room=${roomId}`} />
+            <QRCode value={`https://dei-quiz1.onrender.com/player?room=${roomId}`} />
           <h3>Players Joined:</h3>
           <ul>
             {players.map((p, idx) => (
