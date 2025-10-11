@@ -80,23 +80,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Player shares top character
-  socket.on("shareTop", (roomId) => {
-    const room = rooms[roomId];
-    if (!room) return;
-    const p = room.players[socket.id];
-    if (!p || p.sharedTop) return;
+// Player shares top character
+socket.on("shareTop", (roomId) => {
+  const room = rooms[roomId];
+  if (!room) return;
+  const player = room.players[socket.id];
+  if (!player || player.sharedTop) return;
 
-    const characters = calculateCharacters(p);
-    const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
-    const topCharacter = sorted[0][0];
+  const characters = calculateCharacters(player);
+  const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
+  const topCharacter = sorted[0][0];
 
-    p.sharedTop = topCharacter;
-    room.sharedTop.push({ name: p.name, img: p.img, topCharacter });
+  player.sharedTop = topCharacter;
+  room.sharedTop.push({ name: player.name, img: player.img, topCharacter });
 
-    // Send the updated shared list to everyone
-    io.to(roomId).emit("updateShared", room.sharedTop);
-  });
+  io.to(roomId).emit("updateShared", room.sharedTop);
+});
+
 
   // Disconnect
   socket.on("disconnect", () => {

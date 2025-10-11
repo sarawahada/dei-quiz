@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import { useParams } from "react-router-dom";
 
 const socket = io();
 
-export default function PlayerPage({ roomId }) {
+export default function PlayerPage() {
+  const { roomId } = useParams(); // get roomId from URL
   const [name, setName] = useState("");
   const [joined, setJoined] = useState(false);
   const [message, setMessage] = useState("Waiting for host...");
