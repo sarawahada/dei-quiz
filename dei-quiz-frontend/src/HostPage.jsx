@@ -1,8 +1,9 @@
 // src/HostPage.jsx
 import React, { useState, useEffect } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import socket from "./socket";
+import { io } from "socket.io-client";
 
+const socket = io("https://dei-quiz1.onrender.com");
 export default function HostPage() {
   const [roomId, setRoomId] = useState(null);
   const [players, setPlayers] = useState([]);
