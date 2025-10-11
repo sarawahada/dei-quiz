@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import  QRCode  from "qrcode.react";
 import { io } from "socket.io-client";
 
 const socket = io();
@@ -37,8 +37,7 @@ export default function HostPage() {
       ) : (
         <>
           <h3>Scan QR to join:</h3>
-          <QRCodeCanvas value={`https://dei-quiz1.onrender.com/play/${roomId}`} size={200} />
-          <p>Room ID: {roomId}</p>
+          <QRCode value={`https://dei-quiz1.onrender.com/join/${roomId}`} />
 
           <h4>Players ({players.length}):</h4>
           <ul>{players.map((p, i) => <li key={i}>{p.name}</li>)}</ul>
