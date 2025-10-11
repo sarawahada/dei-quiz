@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import { io } from "socket.io-client";
+import {QRCodeCanvas} from "qrcode.react";
 
+// --- Create a single socket instance for the host ---
 const socket = io();
 
 export default function HostPage() {
   const [roomId, setRoomId] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [quizStarted, setQuizStarted] = useState(false);
 
   useEffect(() => {
+    // Listen for room creation
     socket.on("roomCreated", (id) => {
       setRoomId(id);
     });
 
-    socket.on("updatePlayers", (list) => {
-      setPlayers(list);
+    // Listen for player updates
+    socket.on("updatePlayers", (playersList) => {
+      setPlayers(playersList);
     });
 
+    // Cleanup on unmount
     return () => {
       socket.off("roomCreated");
       socket.off("updatePlayers");
@@ -24,33 +29,38 @@ export default function HostPage() {
   }, []);
 
   const createRoom = () => {
-    socket.emit("createRoom");
+    if (!roomId) {
+      socket.emit("createRoom");
+    }
   };
 
   const startQuiz = () => {
-    socket.emit("hostStart", roomId);
+    if (roomId) {
+      socket.emit("hostStart", roomId);
+      setQuizStarted(true);
+    }
   };
 
   return (
     <div style={{ textAlign: "center", padding: 20 }}>
-      {!roomId ? (
-        <button onClick={createRoom}>Create Room</button>
-      ) : (
-        <div>
-          <h3>Scan this QR code to join:</h3>
-          <QRCodeCanvas value={`https://dei-quiz1.onrender.com/join/${roomId}`} />
-          <p>Room ID: {roomId}</p>
+      <h2>Host Page</h2>
 
-          <h4>Players:</h4>
+      {!roomId && (
+        <button onClick={createRoom}>Create Room</button>
+      )}
+
+      {roomId && (
+        <div>
+          <p>Room ID: {roomId}</p>
+          <QRCodeCanvas value={`https://dei-quiz1.onrender.com?room=${roomId}`} />
+          <h3>Players Joined:</h3>
           <ul>
-            {players.map((p, i) => (
-              <li key={i}>{p.name}</li>
+            {players.map((p, idx) => (
+              <li key={idx}>{p.name}</li>
             ))}
           </ul>
-
-          {players.length > 0 && (
-            <button onClick={startQuiz}>Start Quiz</button>
-          )}
+          {!quizStarted && <button onClick={startQuiz}>Start Quiz</button>}
+          {quizStarted && <p>Quiz Started!</p>}
         </div>
       )}
     </div>
