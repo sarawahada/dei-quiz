@@ -52,8 +52,8 @@ export default function HostPage() {
       {roomId && (
         <div>
           <p>Room ID: {roomId}</p>
-          <QRCodeCanvas value={`https://dei-quiz1.onrender.com/play/${roomId}`} />
-          <Route path="/play/:roomId" element={<PlayerPage />} />          <h3>Players Joined:</h3>
+            <QRCodeCanvas value={`https://dei-quiz1.onrender.com/play/${roomId}`} />
+            <Route path="/play/:roomId" element={<PlayerPage />} />          <h3>Players Joined:</h3>
           <ul>
             {players.map((p, idx) => (
               <li key={idx}>{p.name}</li>
