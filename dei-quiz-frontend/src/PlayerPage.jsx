@@ -52,6 +52,7 @@ export default function PlayerPage() {
   useEffect(() => {
     socket.on("question", (q) => {
       setQuestion(q);
+      setResults(null);
       setMessage("");
       setTimer(13);
     });
@@ -61,6 +62,7 @@ export default function PlayerPage() {
       setQuestion(null);
       setMessage("");
       setTimer(null);
+
       if (chartInstance) chartInstance.destroy();
 
       const ctx = chartRef.current.getContext("2d");
@@ -136,31 +138,12 @@ export default function PlayerPage() {
     if (!muted) bgMusic.play().catch(() => {});
   };
 
-  <div style={{ marginTop: 20 }}>
-    {["Strongly Agree", "Agree", "Disagree", "Strongly Disagree"].map((label, i) => (
-      <button
-        key={i}
-        onClick={() => answerQuestion(i + 1)} // still send 1-4 to backend
-        style={{
-          margin: 10,
-          padding: "20px 40px",
-          borderRadius: 20,
-          color: "#fff",
-          fontSize: "1.2em",
-          border: "2px solid #fff",
-          background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
-          boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
-          cursor: "pointer",
-          transition: "transform 0.15s"
-        }}
-        onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-        onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-      >
-        {label}
-      </button>
-    ))}
-  </div>
-
+  // 🔹 Answer question
+  const answerQuestion = (value) => {
+    if (!muted) clickSound.play();
+    socket.emit("answer", { roomId, answer: value });
+    setQuestion(null);
+  };
 
   // 🔹 Share top character
   const shareTopCharacter = () => {
@@ -367,10 +350,10 @@ export default function PlayerPage() {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            {[1, 2, 3, 4].map((v, i) => (
+            {["Strongly Agree", "Agree", "Disagree", "Strongly Disagree"].map((label, i) => (
               <button
                 key={i}
-                onClick={() => answerQuestion(v)}
+                onClick={() => answerQuestion(i + 1)}
                 style={{
                   margin: 10,
                   padding: "20px 40px",
@@ -386,7 +369,7 @@ export default function PlayerPage() {
                 onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                 onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
-                Option {v}
+                {label}
               </button>
             ))}
           </div>
@@ -522,21 +505,23 @@ export default function PlayerPage() {
               <div
                 key={i}
                 style={{
-                  position: "absolute",
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                  width: "4px",
-                  height: "4px",
-                  background: "rgba(255,255,255,0.8)",
+                  width: 6,
+                  height: 6,
+                  background: "rgba(255,180,70,0.6)",
                   borderRadius: "50%",
-                  animation: `float ${3 + Math.random() * 5}s linear infinite`,
-                  animationDelay: `${Math.random() * 2}s`
+                  position: "absolute",
+                  left: Math.random() * 100 + "%",
+                  top: Math.random() * 100 + "%",
+                  animation: `float ${5 + Math.random() * 5}s linear infinite`,
+                  animationDelay: `${Math.random() * 5}s`
                 }}
               />
             ))}
           </div>
         </div>
       )}
+
+      {message && <div style={{ marginTop: 20, fontSize: "1.1em" }}>{message}</div>}
     </div>
   );
 }
