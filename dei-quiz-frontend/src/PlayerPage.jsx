@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   Chart,
   RadarController,
@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend
 } from "chart.js";
+import { FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -19,13 +20,16 @@ const socket = io("https://dei-quiz1.onrender.com");
 // 🔊 sound effects
 const clickSound = new Audio("/sounds/click.mp3");
 const nextSound = new Audio("/sounds/next.mp3");
+const bgMusic = new Audio("/sounds/bg.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
 
 export default function PlayerPage() {
   const { roomId } = useParams();
   const [name, setName] = useState("");
-  const [avatar, setAvatar] = useState(""); // selected avatar
+  const [avatar, setAvatar] = useState("");
   const [joined, setJoined] = useState(false);
-  const [muted, setMuted] = useState(false); // mute/unmute
+  const [muted, setMuted] = useState(false);
   const [message, setMessage] = useState("Waiting for host...");
   const [question, setQuestion] = useState(null);
   const [results, setResults] = useState(null);
@@ -35,7 +39,6 @@ export default function PlayerPage() {
   const chartRef = useRef(null);
   const [chartInstance, setChartInstance] = useState(null);
 
-  // Avatar list
   const avatars = [
     "/avatars/avatar1.png",
     "/avatars/avatar2.png",
@@ -127,6 +130,7 @@ export default function PlayerPage() {
     if (!muted) clickSound.play();
     socket.emit("join", { roomId, name, img: avatar });
     setJoined(true);
+    if (!muted) bgMusic.play().catch(() => {});
   };
 
   const answerQuestion = (value) => {
@@ -142,24 +146,35 @@ export default function PlayerPage() {
     setTopShared(true);
   };
 
-  const toggleMute = () => setMuted((m) => !m);
+  const toggleMute = () => {
+    setMuted((m) => {
+      const newMute = !m;
+      if (newMute) {
+        bgMusic.pause();
+      } else {
+        bgMusic.play().catch(() => {});
+      }
+      return newMute;
+    });
+  };
 
-  // ✨ Ghibli-style animations
+  // ✨ animations
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
-    @keyframes glow {
-      from { text-shadow: 0 0 5px rgba(255,200,150,0.5); }
-      to { text-shadow: 0 0 15px rgba(255,160,120,1); }
-    }
-    @keyframes float {
-      0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-100vh); opacity: 0; }
-    }`;
+      @keyframes glow {
+        from { text-shadow: 0 0 5px rgba(255,200,150,0.5); }
+        to { text-shadow: 0 0 15px rgba(255,160,120,1); }
+      }
+      @keyframes float {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-100vh); opacity: 0; }
+      }
+    `;
     document.head.appendChild(style);
   }, []);
 
-  // 🌸 Join screen with avatar carousel
+  // 🌸 Join screen
   if (!joined) {
     return (
       <div
@@ -203,8 +218,7 @@ export default function PlayerPage() {
               display: "flex",
               overflowX: "auto",
               gap: 10,
-              paddingBottom: 10,
-              scrollbarWidth: "thin"
+              paddingBottom: 10
             }}
           >
             {avatars.map((a, i) => (
@@ -246,21 +260,21 @@ export default function PlayerPage() {
           onClick={toggleMute}
           style={{
             marginTop: 15,
-            padding: "8px 20px",
+            padding: "8px 12px",
             borderRadius: 15,
             border: "1px solid #dcd0c0",
-            background: muted ? "#eee" : "#FFB347",
-            color: muted ? "#888" : "#fff",
-            cursor: "pointer"
+            background: "#fff",
+            cursor: "pointer",
+            fontSize: "1.2em"
           }}
         >
-          {muted ? "Unmute" : "Mute"}
+          {muted ? <FaVolumeMute color="#888" /> : <FaVolumeUp color="#FFB347" />}
         </button>
       </div>
     );
   }
 
-  // 🌈 Main gameplay screen
+  // 🌈 Main gameplay
   return (
     <div
       style={{
@@ -273,6 +287,7 @@ export default function PlayerPage() {
         position: "relative"
       }}
     >
+      {/* Top right mute button */}
       <div style={{ position: "absolute", top: 10, right: 10 }}>
         <button
           onClick={toggleMute}
@@ -280,12 +295,11 @@ export default function PlayerPage() {
             padding: "6px 12px",
             borderRadius: 15,
             border: "1px solid #dcd0c0",
-            background: muted ? "#eee" : "#FFB347",
-            color: muted ? "#888" : "#fff",
+            background: "#fff",
             cursor: "pointer"
           }}
         >
-          {muted ? "Unmute" : "Mute"}
+          {muted ? <FaVolumeMute color="#888" /> : <FaVolumeUp color="#FFB347" />}
         </button>
       </div>
 
@@ -293,7 +307,6 @@ export default function PlayerPage() {
         DEI Change Agent Quiz
       </h2>
 
-      {/* Question / Results / Waiting for Host */}
       {question ? (
         <div>
           <div style={{ fontSize: "1.1em", fontWeight: 500, marginBottom: 15 }}>
@@ -346,6 +359,8 @@ export default function PlayerPage() {
                   cursor: "pointer",
                   transition: "transform 0.15s"
                 }}
+                onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+                onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
                 Option {v}
               </button>
@@ -355,9 +370,26 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-          <p>Top Character: {results.topTwo[0][0]}</p>
-          <p>Secondary: {results.topTwo[1][0]}</p>
-          {results.hybrid && <p>Hybrid: {results.hybrid}</p>}
+          <p>
+            Top Character:{" "}
+            <Link to={`/character/${results.topTwo[0][0]}`} style={{ color: "#FF8C42", textDecoration: "underline" }}>
+              {results.topTwo[0][0]}
+            </Link>
+          </p>
+          <p>
+            Secondary:{" "}
+            <Link to={`/character/${results.topTwo[1][0]}`} style={{ color: "#FF8C42", textDecoration: "underline" }}>
+              {results.topTwo[1][0]}
+            </Link>
+          </p>
+          {results.hybrid && (
+            <p>
+              Hybrid:{" "}
+              <Link to={`/character/${results.hybrid}`} style={{ color: "#FF8C42", textDecoration: "underline" }}>
+                {results.hybrid}
+              </Link>
+            </p>
+          )}
 
           {!topShared && (
             <button
@@ -391,44 +423,47 @@ export default function PlayerPage() {
             />
           </div>
 
-          {sharedList.length > 0 && (
+            {sharedList.length > 0 && (
+      <div style={{ marginTop: 30, display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+        {sharedList.map((p, i) => {
+          const char = {
+            Equalizer: "Strengths: Fair-minded, Good listener, Balances conflicts. Weaknesses: Avoids confrontation, Indecisive",
+            Bridgebuilder: "Strengths: Connects people, Facilitates collaboration, Strong networker. Weaknesses: Overcommits, Puts others first",
+            Catalyst: "Strengths: Innovative, Energetic, Motivates others. Weaknesses: Impatient, Acts before planning",
+            "Devil Advocate": "Strengths: Critical thinker, Challenges assumptions, Encourages careful decisions. Weaknesses: Can seem negative, Frustrates team"
+          }[p.topCharacter] || "";
+
+          return (
             <div
+              key={i}
+              title={char} // tooltip on hover
               style={{
-                marginTop: 30,
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "center"
+                display: "inline-block",
+                margin: 10,
+                padding: 10,
+                background: "#fff3e0",
+                borderRadius: 15,
+                boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
+                textAlign: "center",
+                minWidth: 100
               }}
             >
-              {sharedList.map((p, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "inline-block",
-                    margin: 10,
-                    padding: 10,
-                    background: "#fff3e0",
-                    borderRadius: 15,
-                    boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
-                    textAlign: "center",
-                    minWidth: 100
-                  }}
-                >
-                  <img
-                    src={p.img}
-                    style={{ width: 60, height: 60, borderRadius: "50%" }}
-                    alt="avatar"
-                  />
-                  <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
-                  <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>
-                    {p.topCharacter}
-                  </div>
-                </div>
-              ))}
+              <img
+                src={p.img}
+                style={{ width: 60, height: 60, borderRadius: "50%" }}
+                alt="avatar"
+              />
+              <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
+              <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
             </div>
-          )}
+          );
+        })}
+      </div>
+    )}
+
         </div>
       ) : (
+        // 🌌 Waiting for host
         <div
           style={{
             display: "flex",
@@ -449,7 +484,7 @@ export default function PlayerPage() {
               animation: "glow 2s infinite alternate"
             }}
           >
-            Waiting for host...
+            Waiting for other players...
           </h3>
 
           <div
