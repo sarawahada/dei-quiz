@@ -136,13 +136,31 @@ export default function PlayerPage() {
     if (!muted) bgMusic.play().catch(() => {});
   };
 
-  // 🔹 Answer question
-  const answerQuestion = (value) => {
-    if (!muted) clickSound.play();
-    socket.emit("answer", { roomId, value });
-    setQuestion(null);
-    setMessage("Waiting for other players...");
-  };
+  <div style={{ marginTop: 20 }}>
+    {["Strongly Agree", "Agree", "Disagree", "Strongly Disagree"].map((label, i) => (
+      <button
+        key={i}
+        onClick={() => answerQuestion(i + 1)} // still send 1-4 to backend
+        style={{
+          margin: 10,
+          padding: "20px 40px",
+          borderRadius: 20,
+          color: "#fff",
+          fontSize: "1.2em",
+          border: "2px solid #fff",
+          background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
+          boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
+          cursor: "pointer",
+          transition: "transform 0.15s"
+        }}
+        onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+        onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+
 
   // 🔹 Share top character
   const shareTopCharacter = () => {
