@@ -7,6 +7,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HostPage />} />
       <Route path="/play/:roomId" element={<PlayerPage />} />
+      <Route path="/character/:name" element={<Character />} />
     </Routes>
   );
 }
