@@ -23,7 +23,9 @@ const nextSound = new Audio("/sounds/next.mp3");
 export default function PlayerPage() {
   const { roomId } = useParams();
   const [name, setName] = useState("");
+  const [avatar, setAvatar] = useState(""); // selected avatar
   const [joined, setJoined] = useState(false);
+  const [muted, setMuted] = useState(false); // mute/unmute
   const [message, setMessage] = useState("Waiting for host...");
   const [question, setQuestion] = useState(null);
   const [results, setResults] = useState(null);
@@ -33,11 +35,21 @@ export default function PlayerPage() {
   const chartRef = useRef(null);
   const [chartInstance, setChartInstance] = useState(null);
 
+  // Avatar list
+  const avatars = [
+    "/avatars/avatar1.png",
+    "/avatars/avatar2.png",
+    "/avatars/avatar3.png",
+    "/avatars/avatar4.png",
+    "/avatars/avatar5.png",
+    "/avatars/avatar6.png"
+  ];
+
   useEffect(() => {
     socket.on("question", (q) => {
       setQuestion(q);
       setMessage("");
-      setTimer(13); // ⏳ start 13-second timer
+      setTimer(13);
     });
 
     socket.on("showResults", (res) => {
@@ -47,7 +59,6 @@ export default function PlayerPage() {
       setTimer(null);
       if (chartInstance) chartInstance.destroy();
 
-      // 📊 create radar chart
       const ctx = chartRef.current.getContext("2d");
       const labels = Object.keys(res.characters);
       const values = Object.values(res.characters);
@@ -99,40 +110,41 @@ export default function PlayerPage() {
     };
   }, [chartInstance]);
 
-  // ⏲️ timer countdown
   useEffect(() => {
     if (timer === null) return;
     if (timer === 0) {
-      nextSound.play();
+      if (!muted) nextSound.play();
       socket.emit("timeout", roomId);
       setTimer(null);
       return;
     }
     const interval = setInterval(() => setTimer((t) => (t > 0 ? t - 1 : 0)), 1000);
     return () => clearInterval(interval);
-  }, [timer]);
+  }, [timer, muted]);
 
   const joinRoom = () => {
-    if (!name) return;
-    clickSound.play();
-    socket.emit("join", { roomId, name, img: "" });
+    if (!name || !avatar) return;
+    if (!muted) clickSound.play();
+    socket.emit("join", { roomId, name, img: avatar });
     setJoined(true);
   };
 
   const answerQuestion = (value) => {
-    clickSound.play();
+    if (!muted) clickSound.play();
     socket.emit("answer", { roomId, value });
     setQuestion(null);
     setMessage("Waiting for other players...");
   };
 
   const shareTopCharacter = () => {
-    clickSound.play();
+    if (!muted) clickSound.play();
     socket.emit("shareTop", roomId);
     setTopShared(true);
   };
 
-  // ✨ animations (Ghibli-style)
+  const toggleMute = () => setMuted((m) => !m);
+
+  // ✨ Ghibli-style animations
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -147,7 +159,7 @@ export default function PlayerPage() {
     document.head.appendChild(style);
   }, []);
 
-  // 🌸 join screen
+  // 🌸 Join screen with avatar carousel
   if (!joined) {
     return (
       <div
@@ -167,69 +179,124 @@ export default function PlayerPage() {
         <h2 style={{ fontFamily: "'Pacifico', cursive", marginBottom: 20 }}>
           DEI Change Agent Quiz
         </h2>
+
         <input
           placeholder="Enter your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           style={{
-            padding: 10,
-            fontSize: "1.1em",
+            padding: 12,
+            fontSize: "1.2em",
             borderRadius: 10,
             border: "1px solid #dcd0c0",
             width: "80%",
             maxWidth: 300,
-            textAlign: "center"
+            textAlign: "center",
+            marginBottom: 20
           }}
         />
-        <div style={{ marginTop: 20 }}>
-          <button
-            onClick={joinRoom}
+
+        <div style={{ marginBottom: 20, width: "100%", maxWidth: 360 }}>
+          <div style={{ marginBottom: 8 }}>Select Your Avatar:</div>
+          <div
             style={{
-              padding: "12px 30px",
-              borderRadius: 20,
-              border: "none",
-              background: "#FFB347",
-              color: "#fff",
-              fontSize: "1.1em",
-              cursor: "pointer",
-              boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
-              transition: "transform 0.2s"
+              display: "flex",
+              overflowX: "auto",
+              gap: 10,
+              paddingBottom: 10,
+              scrollbarWidth: "thin"
             }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
-            Join Room
-          </button>
+            {avatars.map((a, i) => (
+              <img
+                key={i}
+                src={a}
+                alt="avatar"
+                onClick={() => setAvatar(a)}
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: "50%",
+                  border: avatar === a ? "3px solid #FF8C42" : "2px solid #dcd0c0",
+                  cursor: "pointer",
+                  flexShrink: 0
+                }}
+              />
+            ))}
+          </div>
         </div>
+
+        <button
+          onClick={joinRoom}
+          style={{
+            padding: "14px 30px",
+            borderRadius: 20,
+            border: "none",
+            background: "#FFB347",
+            color: "#fff",
+            fontSize: "1.2em",
+            cursor: "pointer",
+            boxShadow: "2px 4px 6px rgba(0,0,0,0.2)"
+          }}
+        >
+          Join Room
+        </button>
+
+        <button
+          onClick={toggleMute}
+          style={{
+            marginTop: 15,
+            padding: "8px 20px",
+            borderRadius: 15,
+            border: "1px solid #dcd0c0",
+            background: muted ? "#eee" : "#FFB347",
+            color: muted ? "#888" : "#fff",
+            cursor: "pointer"
+          }}
+        >
+          {muted ? "Unmute" : "Mute"}
+        </button>
       </div>
     );
   }
 
-  // 🌈 main gameplay
+  // 🌈 Main gameplay screen
   return (
     <div
       style={{
         textAlign: "center",
-        padding: 30,
+        padding: 20,
         minHeight: "100vh",
         background: "linear-gradient(to bottom, #fbe9e7, #fffaf8)",
         fontFamily: "'Nunito', 'Inter', sans-serif",
-        color: "#5e4033"
+        color: "#5e4033",
+        position: "relative"
       }}
     >
+      <div style={{ position: "absolute", top: 10, right: 10 }}>
+        <button
+          onClick={toggleMute}
+          style={{
+            padding: "6px 12px",
+            borderRadius: 15,
+            border: "1px solid #dcd0c0",
+            background: muted ? "#eee" : "#FFB347",
+            color: muted ? "#888" : "#fff",
+            cursor: "pointer"
+          }}
+        >
+          {muted ? "Unmute" : "Mute"}
+        </button>
+      </div>
+
       <h2 style={{ fontFamily: "'Pacifico', cursive", marginBottom: 20 }}>
         DEI Change Agent Quiz
       </h2>
 
+      {/* Question / Results / Waiting for Host */}
       {question ? (
         <div>
-          <div
-            style={{
-              fontSize: "1.1em",
-              fontWeight: 500,
-              marginBottom: 15
-            }}
-          >
+          <div style={{ fontSize: "1.1em", fontWeight: 500, marginBottom: 15 }}>
             Question {question.index}/{question.total}
           </div>
 
@@ -279,8 +346,6 @@ export default function PlayerPage() {
                   cursor: "pointer",
                   transition: "transform 0.15s"
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-                onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
                 Option {v}
               </button>
@@ -364,7 +429,6 @@ export default function PlayerPage() {
           )}
         </div>
       ) : (
-        // 🌌 waiting for host Ghibli style
         <div
           style={{
             display: "flex",
