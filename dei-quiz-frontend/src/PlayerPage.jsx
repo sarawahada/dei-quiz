@@ -350,7 +350,7 @@ export default function PlayerPage() {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            {["Strongly Agree", "Agree", "Disagree", "Strongly Disagree"].map((label, i) => (
+            {["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"].map((label, i) => (
               <button
                 key={i}
                 onClick={() => answerQuestion(i + 1)}
