@@ -48,6 +48,7 @@ export default function PlayerPage() {
     "/avatars/avatar6.png"
   ];
 
+  // 🔹 Socket listeners
   useEffect(() => {
     socket.on("question", (q) => {
       setQuestion(q);
@@ -113,6 +114,7 @@ export default function PlayerPage() {
     };
   }, [chartInstance]);
 
+  // 🔹 Timer
   useEffect(() => {
     if (timer === null) return;
     if (timer === 0) {
@@ -125,6 +127,7 @@ export default function PlayerPage() {
     return () => clearInterval(interval);
   }, [timer, muted]);
 
+  // 🔹 Join room
   const joinRoom = () => {
     if (!name || !avatar) return;
     if (!muted) clickSound.play();
@@ -133,6 +136,7 @@ export default function PlayerPage() {
     if (!muted) bgMusic.play().catch(() => {});
   };
 
+  // 🔹 Answer question
   const answerQuestion = (value) => {
     if (!muted) clickSound.play();
     socket.emit("answer", { roomId, value });
@@ -140,12 +144,14 @@ export default function PlayerPage() {
     setMessage("Waiting for other players...");
   };
 
+  // 🔹 Share top character
   const shareTopCharacter = () => {
     if (!muted) clickSound.play();
     socket.emit("shareTop", roomId);
     setTopShared(true);
   };
 
+  // 🔹 Toggle mute
   const toggleMute = () => {
     setMuted((m) => {
       const newMute = !m;
@@ -158,7 +164,7 @@ export default function PlayerPage() {
     });
   };
 
-  // ✨ animations
+  // 🔹 Animations
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -174,7 +180,7 @@ export default function PlayerPage() {
     document.head.appendChild(style);
   }, []);
 
-  // 🌸 Join screen
+  // 🔹 Join screen
   if (!joined) {
     return (
       <div
@@ -274,7 +280,7 @@ export default function PlayerPage() {
     );
   }
 
-  // 🌈 Main gameplay
+  // 🔹 Main gameplay
   return (
     <div
       style={{
@@ -423,47 +429,45 @@ export default function PlayerPage() {
             />
           </div>
 
-            {sharedList.length > 0 && (
-      <div style={{ marginTop: 30, display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-        {sharedList.map((p, i) => {
-          const char = {
-            Equalizer: "Strengths: Fair-minded, Good listener, Balances conflicts. Weaknesses: Avoids confrontation, Indecisive",
-            Bridgebuilder: "Strengths: Connects people, Facilitates collaboration, Strong networker. Weaknesses: Overcommits, Puts others first",
-            Catalyst: "Strengths: Innovative, Energetic, Motivates others. Weaknesses: Impatient, Acts before planning",
-            "Devil Advocate": "Strengths: Critical thinker, Challenges assumptions, Encourages careful decisions. Weaknesses: Can seem negative, Frustrates team"
-          }[p.topCharacter] || "";
+          {sharedList.length > 0 && (
+            <div style={{ marginTop: 30, display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
+              {sharedList.map((p, i) => {
+                const char = {
+                  Equalizer: "Strengths: Fair-minded, Good listener, Balances conflicts. Weaknesses: Avoids confrontation, Indecisive",
+                  Bridgebuilder: "Strengths: Connects people, Facilitates collaboration, Strong networker. Weaknesses: Overcommits, Puts others first",
+                  Catalyst: "Strengths: Innovative, Energetic, Motivates others. Weaknesses: Impatient, Acts before planning",
+                  "Devil Advocate": "Strengths: Critical thinker, Challenges assumptions, Encourages careful decisions. Weaknesses: Can seem negative, Frustrates team"
+                }[p.topCharacter] || "";
 
-          return (
-            <div
-              key={i}
-              title={char} // tooltip on hover
-              style={{
-                display: "inline-block",
-                margin: 10,
-                padding: 10,
-                background: "#fff3e0",
-                borderRadius: 15,
-                boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
-                textAlign: "center",
-                minWidth: 100
-              }}
-            >
-              <img
-                src={p.img}
-                style={{ width: 60, height: 60, borderRadius: "50%" }}
-                alt="avatar"
-              />
-              <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
-              <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
+                return (
+                  <div
+                    key={i}
+                    title={char}
+                    style={{
+                      display: "inline-block",
+                      margin: 10,
+                      padding: 10,
+                      background: "#fff3e0",
+                      borderRadius: 15,
+                      boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
+                      textAlign: "center",
+                      minWidth: 100
+                    }}
+                  >
+                    <img
+                      src={p.img}
+                      style={{ width: 60, height: 60, borderRadius: "50%" }}
+                      alt="avatar"
+                    />
+                    <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
+                    <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-    )}
-
+          )}
         </div>
       ) : (
-        // 🌌 Waiting for host
         <div
           style={{
             display: "flex",
