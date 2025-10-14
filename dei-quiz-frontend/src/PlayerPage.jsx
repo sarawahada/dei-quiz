@@ -17,7 +17,6 @@ Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Fi
 
 const socket = io("https://dei-quiz1.onrender.com");
 
-// 🔊 sound effects
 const clickSound = new Audio("/sounds/click.mp3");
 const nextSound = new Audio("/sounds/next.mp3");
 const bgMusic = new Audio("/sounds/bg.mp3");
@@ -65,7 +64,9 @@ export default function PlayerPage() {
 
       if (chartInstance) chartInstance.destroy();
 
-      const ctx = chartRef.current.getContext("2d");
+      const ctx = chartRef.current?.getContext("2d");
+      if (!ctx) return;
+
       const labels = Object.keys(res.characters);
       const values = Object.values(res.characters);
       const colors = {
@@ -83,15 +84,16 @@ export default function PlayerPage() {
             {
               label: "Your Archetype Strengths",
               data: values,
-              backgroundColor: labels.map((l) => colors[l] + "80"),
-              borderColor: labels.map((l) => colors[l]),
+              backgroundColor: "rgba(255,140,66,0.2)",
+              borderColor: "#FF8C42",
               borderWidth: 2,
-              pointBackgroundColor: labels.map((l) => colors[l])
+              pointBackgroundColor: "#FF8C42"
             }
           ]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             r: {
@@ -294,7 +296,6 @@ export default function PlayerPage() {
         position: "relative"
       }}
     >
-      {/* Top right mute button */}
       <div style={{ position: "absolute", top: 10, right: 10 }}>
         <button
           onClick={toggleMute}
@@ -349,18 +350,27 @@ export default function PlayerPage() {
             {question.text}
           </div>
 
-          <div style={{ marginTop: 20 }}>
+          <div
+            style={{
+              marginTop: 20,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 15
+            }}
+          >
             {["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"].map((label, i) => (
               <button
                 key={i}
                 onClick={() => answerQuestion(i + 1)}
                 style={{
-                  margin: 10,
-                  padding: "20px 40px",
-                  borderRadius: 20,
+                  width: "80%",
+                  maxWidth: 400,
+                  padding: "16px 0",
+                  borderRadius: 15,
                   color: "#fff",
-                  fontSize: "1.2em",
-                  border: "2px solid #fff",
+                  fontSize: "1.1em",
+                  border: "none",
                   background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
                   boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
                   cursor: "pointer",
@@ -383,6 +393,21 @@ export default function PlayerPage() {
               {results.topTwo[0][0]}
             </Link>
           </p>
+
+          <div style={{ margin: "15px 0" }}>
+            <img
+              src={`/characters/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
+              alt={results.topTwo[0][0]}
+              style={{
+                width: 140,
+                height: 140,
+                borderRadius: "50%",
+                objectFit: "cover",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.2)"
+              }}
+            />
+          </div>
+
           <p>
             Secondary:{" "}
             <Link to={`/character/${results.topTwo[1][0]}`} style={{ color: "#FF8C42", textDecoration: "underline" }}>
@@ -417,11 +442,14 @@ export default function PlayerPage() {
             </button>
           )}
 
-          <div style={{ marginTop: 30 }}>
+          <div style={{ marginTop: 30, height: 400 }}>
             <canvas
               ref={chartRef}
               style={{
+                width: "90vw",
                 maxWidth: 400,
+                height: "90vw",
+                maxHeight: 400,
                 margin: "0 auto",
                 background: "rgba(255,250,240,0.8)",
                 borderRadius: 20,
@@ -432,41 +460,47 @@ export default function PlayerPage() {
 
           {sharedList.length > 0 && (
             <div style={{ marginTop: 30, display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-              {sharedList.map((p, i) => {
-                const char = {
-                  Equalizer: "Strengths: Fair-minded, Good listener, Balances conflicts. Weaknesses: Avoids confrontation, Indecisive",
-                  Bridgebuilder: "Strengths: Connects people, Facilitates collaboration, Strong networker. Weaknesses: Overcommits, Puts others first",
-                  Catalyst: "Strengths: Innovative, Energetic, Motivates others. Weaknesses: Impatient, Acts before planning",
-                  "Devil Advocate": "Strengths: Critical thinker, Challenges assumptions, Encourages careful decisions. Weaknesses: Can seem negative, Frustrates team"
-                }[p.topCharacter] || "";
-
-                return (
-                  <div
-                    key={i}
-                    title={char}
-                    style={{
-                      display: "inline-block",
-                      margin: 10,
-                      padding: 10,
-                      background: "#fff3e0",
-                      borderRadius: 15,
-                      boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
-                      textAlign: "center",
-                      minWidth: 100
-                    }}
-                  >
-                    <img
-                      src={p.img}
-                      style={{ width: 60, height: 60, borderRadius: "50%" }}
-                      alt="avatar"
-                    />
-                    <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
-                    <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
-                  </div>
-                );
-              })}
+              {sharedList.map((p, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "inline-block",
+                    margin: 10,
+                    padding: 10,
+                    background: "#fff3e0",
+                    borderRadius: 15,
+                    boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
+                    textAlign: "center",
+                    minWidth: 100
+                  }}
+                >
+                  <img
+                    src={p.img}
+                    style={{ width: 60, height: 60, borderRadius: "50%" }}
+                    alt="avatar"
+                  />
+                  <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
+                  <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
+                </div>
+              ))}
             </div>
           )}
+
+          <button
+            onClick={() => window.history.back()}
+            style={{
+              marginTop: 25,
+              padding: "10px 25px",
+              borderRadius: 20,
+              border: "1px solid #dcd0c0",
+              background: "#fff",
+              color: "#5e4033",
+              cursor: "pointer",
+              boxShadow: "1px 2px 6px rgba(0,0,0,0.1)"
+            }}
+          >
+            ⬅ Back
+          </button>
         </div>
       ) : (
         <div
@@ -478,7 +512,8 @@ export default function PlayerPage() {
             minHeight: "100vh",
             background: "linear-gradient(to bottom, #fbe9e7, #fffaf8)",
             overflow: "hidden",
-            position: "relative"
+            position: "relative",
+            padding: "20px"
           }}
         >
           <h3
@@ -486,7 +521,8 @@ export default function PlayerPage() {
               color: "#5e4033",
               fontSize: "1.6em",
               textShadow: "0 0 15px rgba(255,200,150,0.8)",
-              animation: "glow 2s infinite alternate"
+              animation: "glow 2s infinite alternate",
+              textAlign: "center"
             }}
           >
             Waiting for other players...
@@ -520,8 +556,6 @@ export default function PlayerPage() {
           </div>
         </div>
       )}
-
-      {message && <div style={{ marginTop: 20, fontSize: "1.1em" }}>{message}</div>}
     </div>
   );
 }
