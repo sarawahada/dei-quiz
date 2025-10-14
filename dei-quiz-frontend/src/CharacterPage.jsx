@@ -141,8 +141,13 @@ export default function CharacterPage() {
         </ul>
       </div>
 
-      <Link
-        to="/"
+      // Inside your component
+      const navigate = useNavigate();
+      const { roomId } = useParams();
+
+      // Replace your Link with a button
+      <button
+        onClick={() => navigate(`/player/${roomId}`, { state: { results } })}
         style={{
           display: "inline-block",
           marginTop: 30,
@@ -151,11 +156,12 @@ export default function CharacterPage() {
           color: "#fff",
           borderRadius: 15,
           textDecoration: "none",
-          boxShadow: "2px 4px 6px rgba(0,0,0,0.2)"
+          boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
+          cursor: "pointer"
         }}
       >
         Back to Quiz
-      </Link>
+      </button>
     </div>
   );
 }
