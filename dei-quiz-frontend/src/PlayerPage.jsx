@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Chart,
   RadarController,
@@ -16,7 +16,6 @@ import { FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 const socket = io("https://dei-quiz1.onrender.com");
-
 const clickSound = new Audio("/sounds/click.mp3");
 const nextSound = new Audio("/sounds/next.mp3");
 const bgMusic = new Audio("/sounds/bg.mp3");
@@ -25,6 +24,7 @@ bgMusic.volume = 0.3;
 
 export default function PlayerPage() {
   const { roomId } = useParams();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("");
   const [joined, setJoined] = useState(false);
@@ -63,18 +63,16 @@ export default function PlayerPage() {
       setTimer(null);
 
       if (chartInstance) chartInstance.destroy();
-
       const ctx = chartRef.current?.getContext("2d");
       if (!ctx) return;
 
       const labels = Object.keys(res.characters);
       const values = Object.values(res.characters);
-      const colors = {
-        Equalizer: "#6CC4A1",
-        Bridgebuilder: "#FFB347",
-        Catalyst: "#FF8C42",
-        "Devil Advocate": "#6B8DD6"
-      };
+
+      // 3D look for radar chart
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, "rgba(255,140,66,0.6)");
+      gradient.addColorStop(1, "rgba(255,140,66,0.1)");
 
       const newChart = new Chart(ctx, {
         type: "radar",
@@ -84,10 +82,16 @@ export default function PlayerPage() {
             {
               label: "Your Archetype Strengths",
               data: values,
-              backgroundColor: "rgba(255,140,66,0.2)",
+              backgroundColor: gradient,
               borderColor: "#FF8C42",
-              borderWidth: 2,
-              pointBackgroundColor: "#FF8C42"
+              borderWidth: 3,
+              pointBackgroundColor: "#FF8C42",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointStyle: 'circle',
+              hoverBorderWidth: 3
             }
           ]
         },
@@ -307,7 +311,7 @@ export default function PlayerPage() {
             cursor: "pointer"
           }}
         >
-          {muted ? <FaVolumeMute color="#888" /> : <FaVolumeUp color="#FFB347" />}
+          {muted ? <FaVolumeMute color="#888" /> : <FaVolumeUp color="#FF8C42" />}
         </button>
       </div>
 
@@ -354,7 +358,7 @@ export default function PlayerPage() {
             style={{
               marginTop: 20,
               display: "flex",
-              flexDirection: "column",
+              flexDirection: "column", // stacked buttons for mobile
               alignItems: "center",
               gap: 15
             }}
@@ -387,6 +391,22 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
+
+          {/* Result Image */}
+          <div style={{ margin: "15px 0" }}>
+            <img
+              src="/images/result-banner.png" // your banner image
+              alt="Result"
+              style={{
+                width: "80%",
+                maxWidth: 300,
+                margin: "15px auto",
+                borderRadius: 20,
+                boxShadow: "2px 4px 12px rgba(0,0,0,0.2)"
+              }}
+            />
+          </div>
+
           <p>
             Top Character:{" "}
             <Link to={`/character/${results.topTwo[0][0]}`} style={{ color: "#FF8C42", textDecoration: "underline" }}>
@@ -450,44 +470,13 @@ export default function PlayerPage() {
                 maxWidth: 400,
                 height: "90vw",
                 maxHeight: 400,
-                margin: "0 auto",
-                background: "rgba(255,250,240,0.8)",
-                borderRadius: 20,
-                boxShadow: "2px 4px 12px rgba(0,0,0,0.1)"
+                margin: "auto"
               }}
             />
           </div>
 
-          {sharedList.length > 0 && (
-            <div style={{ marginTop: 30, display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
-              {sharedList.map((p, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "inline-block",
-                    margin: 10,
-                    padding: 10,
-                    background: "#fff3e0",
-                    borderRadius: 15,
-                    boxShadow: "1px 2px 6px rgba(0,0,0,0.15)",
-                    textAlign: "center",
-                    minWidth: 100
-                  }}
-                >
-                  <img
-                    src={p.img}
-                    style={{ width: 60, height: 60, borderRadius: "50%" }}
-                    alt="avatar"
-                  />
-                  <div style={{ fontWeight: "bold", marginTop: 5 }}>{p.name}</div>
-                  <div style={{ fontSize: "0.9em", color: "#8d6e63" }}>{p.topCharacter}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <button
-            onClick={() => window.history.back()}
+            onClick={() => navigate(`/player/${roomId}`, { state: { results } })}
             style={{
               marginTop: 25,
               padding: "10px 25px",
@@ -503,57 +492,18 @@ export default function PlayerPage() {
           </button>
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "100vh",
-            background: "linear-gradient(to bottom, #fbe9e7, #fffaf8)",
-            overflow: "hidden",
-            position: "relative",
-            padding: "20px"
-          }}
-        >
-          <h3
-            style={{
-              color: "#5e4033",
-              fontSize: "1.6em",
-              textShadow: "0 0 15px rgba(255,200,150,0.8)",
-              animation: "glow 2s infinite alternate",
-              textAlign: "center"
-            }}
-          >
-            Waiting for other players...
-          </h3>
+        <p>{message}</p>
+      )}
 
-          <div
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              pointerEvents: "none",
-              overflow: "hidden"
-            }}
-          >
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 6,
-                  height: 6,
-                  background: "rgba(255,180,70,0.6)",
-                  borderRadius: "50%",
-                  position: "absolute",
-                  left: Math.random() * 100 + "%",
-                  top: Math.random() * 100 + "%",
-                  animation: `float ${5 + Math.random() * 5}s linear infinite`,
-                  animationDelay: `${Math.random() * 5}s`
-                }}
-              />
+      {/* Shared List */}
+      {sharedList.length > 0 && (
+        <div style={{ position: "absolute", bottom: 20, left: 20 }}>
+          <h4>Shared Top Characters:</h4>
+          <ul>
+            {sharedList.map((item, i) => (
+              <li key={i}>{item}</li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </div>
