@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Chart, RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from "chart.js";
 import { useLocation, useNavigate } from "react-router-dom";
-import resultImage from "./assets/IMG_1087.PNG"; // make sure this path matches your image file location
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
