@@ -1,194 +1,216 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import quiz from "./quiz.js"; // your quiz array of questions
+import quiz from "./quiz.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
+const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(cors());
+// Room structure: { roomId: { players: {}, currentQuestionIndex, sharedTop: [], answered: Set } }
+let rooms = {};
+let timers = {};
+
 app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
+});
 
-const PORT = process.env.PORT || 3001;
-
-// Store all active rooms
-const rooms = {};
-
-// Utility: Generate random 5-digit room code
-function generateRoomCode() {
-  return Math.floor(10000 + Math.random() * 90000).toString();
-}
-
-// ---- SOCKET LOGIC ----
 io.on("connection", (socket) => {
-  console.log("🔌 A user connected:", socket.id);
+  console.log("New connection:", socket.id);
 
-  // Host creates room
+  // --- Host creates room ---
   socket.on("createRoom", () => {
-    const roomCode = generateRoomCode();
-    rooms[roomCode] = {
-      host: socket.id,
+    const roomId = socket.id;
+    rooms[roomId] = {
       players: {},
-      currentQuestion: 0,
-      questionStartTime: null,
-      timer: null,
+      currentQuestionIndex: -1,
+      sharedTop: [],
+      answered: new Set(),
     };
-    socket.join(roomCode);
-    socket.emit("roomCreated", roomCode);
-    console.log(`🏠 Room ${roomCode} created by host ${socket.id}`);
+    socket.join(roomId);
+    io.to(socket.id).emit("roomCreated", roomId);
   });
 
-  // Player joins room
-  socket.on("joinRoom", ({ playerName, roomCode }) => {
-    const room = rooms[roomCode];
-    if (!room) {
-      socket.emit("roomNotFound");
-      return;
-    }
-
-    room.players[socket.id] = {
-      id: socket.id,
-      name: playerName,
-      score: 0,
-      answered: false,
-      answerTime: null,
-    };
-
-    socket.join(roomCode);
-    console.log(`👤 Player ${playerName} joined room ${roomCode}`);
-
-    io.to(roomCode).emit("playersUpdate", Object.values(room.players));
-  });
-
-  // Host starts the game
-  socket.on("startGame", (roomCode) => {
-    const room = rooms[roomCode];
+  // --- Player joins room ---
+  socket.on("join", ({ roomId, name, img }) => {
+    const room = rooms[roomId];
     if (!room) return;
-    room.currentQuestion = 0;
-    sendQuestion(roomCode);
+    room.players[socket.id] = { name, img, answers: [], sharedTop: null };
+    socket.join(roomId);
+
+    io.to(roomId).emit(
+      "updatePlayers",
+      Object.values(room.players).map((p) => ({ name: p.name, img: p.img }))
+    );
   });
 
-  // Player answers question
-  socket.on("playerAnswer", ({ roomCode, answerIndex }) => {
-    const room = rooms[roomCode];
+  // --- Host starts quiz ---
+  socket.on("hostStart", (roomId) => {
+    const room = rooms[roomId];
     if (!room) return;
+    room.currentQuestionIndex = 0;
+    sendQuestionToAll(roomId);
+  });
 
+  // --- Player answers a question ---
+  socket.on("answer", ({ roomId, value }) => {
+    const room = rooms[roomId];
+    if (!room || room.currentQuestionIndex < 0) return;
     const player = room.players[socket.id];
-    if (!player || player.answered) return; // ignore duplicate answers
+    const currentQ = quiz[room.currentQuestionIndex];
+    if (!player) return;
 
-    player.answered = true;
-    const question = quiz[room.currentQuestion];
-    const correctIndex = question.correct;
+    // Record answer once per question
+    if (room.answered.has(socket.id)) return;
+    player.answers.push({ question: currentQ.text, value });
+    room.answered.add(socket.id);
 
-    const timeTaken = (Date.now() - room.questionStartTime) / 1000;
+    const totalPlayers = Object.keys(room.players).length;
+    const answeredCount = room.answered.size;
 
-    // Score based on correctness and speed
-    if (answerIndex === correctIndex) {
-      if (timeTaken <= 3) player.score += 1000;
-      else if (timeTaken <= 6) player.score += 800;
-      else if (timeTaken <= 10) player.score += 600;
-      else player.score += 400;
-    }
-
-    player.answerTime = timeTaken;
-
-    // Notify host about updates
-    io.to(room.host).emit("playersUpdate", Object.values(room.players));
-
-    // If all players have answered before timer ends → next question
-    const allAnswered = Object.values(room.players).every((p) => p.answered);
-    if (allAnswered) {
-      clearTimeout(room.timer);
-      setTimeout(() => sendNextQuestion(roomCode), 2000);
+    // Everyone answered → advance immediately
+    if (answeredCount === totalPlayers) {
+      if (timers[roomId]) clearTimeout(timers[roomId]);
+      nextQuestionOrResults(roomId);
     }
   });
 
-  // Disconnect handling
+  // --- Player shares top character ---
+  socket.on("shareTop", (roomId) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    const player = room.players[socket.id];
+    if (!player || player.sharedTop) return;
+
+    const characters = calculateCharacters(player);
+    const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
+    const topCharacter = sorted[0][0];
+
+    player.sharedTop = topCharacter;
+    room.sharedTop.push({ name: player.name, img: player.img, topCharacter });
+
+    io.to(roomId).emit("updateShared", room.sharedTop);
+  });
+
+  // --- Disconnect cleanup ---
   socket.on("disconnect", () => {
-    console.log("❌ Disconnected:", socket.id);
-    for (const roomCode in rooms) {
-      const room = rooms[roomCode];
-
-      if (room.host === socket.id) {
-        io.to(roomCode).emit("hostLeft");
-        delete rooms[roomCode];
-        console.log(`Room ${roomCode} deleted (host left)`);
-        return;
-      }
-
-      if (room.players[socket.id]) {
-        delete room.players[socket.id];
-        io.to(roomCode).emit("playersUpdate", Object.values(room.players));
-      }
+    for (const roomId in rooms) {
+      const room = rooms[roomId];
+      if (room.players[socket.id]) delete room.players[socket.id];
+      io.to(roomId).emit(
+        "updatePlayers",
+        Object.values(room.players).map((p) => ({ name: p.name, img: p.img }))
+      );
     }
   });
 });
 
-// ---- QUESTION MANAGEMENT ----
-function sendQuestion(roomCode) {
-  const room = rooms[roomCode];
+// --- Helpers ---
+function sendQuestionToAll(roomId) {
+  const room = rooms[roomId];
   if (!room) return;
 
-  const question = quiz[room.currentQuestion];
-  if (!question) {
-    endGame(roomCode);
+  // Reset answered players for this round
+  room.answered = new Set();
+
+  // Clear any old timer
+  if (timers[roomId]) clearTimeout(timers[roomId]);
+
+  const total = quiz.length;
+  const current = quiz[room.currentQuestionIndex];
+  if (!current) {
+    sendResultsToAll(roomId);
     return;
   }
 
-  // Reset player answers
-  for (const player of Object.values(room.players)) {
-    player.answered = false;
-    player.answerTime = null;
+  // Broadcast question to all players
+  for (const id in room.players) {
+    io.to(id).emit("question", {
+      text: current.text,
+      index: room.currentQuestionIndex + 1,
+      total,
+    });
   }
 
-  room.questionStartTime = Date.now();
-  io.to(roomCode).emit("newQuestion", {
-    question: question.text,
-    options: question.options,
-    questionNumber: room.currentQuestion + 1,
-    totalQuestions: quiz.length,
-  });
-
-  // Start timer (13s)
-  clearTimeout(room.timer);
-  room.timer = setTimeout(() => sendNextQuestion(roomCode), 13000);
+  // 13-second countdown then move automatically
+  timers[roomId] = setTimeout(() => nextQuestionOrResults(roomId), 13000);
 }
 
-function sendNextQuestion(roomCode) {
-  const room = rooms[roomCode];
+function nextQuestionOrResults(roomId) {
+  const room = rooms[roomId];
   if (!room) return;
 
-  room.currentQuestion++;
-  if (room.currentQuestion >= quiz.length) {
-    endGame(roomCode);
+  room.currentQuestionIndex++;
+  if (room.currentQuestionIndex < quiz.length) {
+    sendQuestionToAll(roomId);
   } else {
-    sendQuestion(roomCode);
+    sendResultsToAll(roomId);
   }
 }
 
-// ---- END GAME ----
-function endGame(roomCode) {
-  const room = rooms[roomCode];
-  if (!room) return;
-
-  const players = Object.values(room.players);
-  players.sort((a, b) => b.score - a.score);
-
-  io.to(roomCode).emit("gameOver", players);
-  console.log(`🏁 Game ended in room ${roomCode}`);
+function calculateCharacters(player) {
+  const characters = {
+    Equalizer: 0,
+    Bridgebuilder: 0,
+    Catalyst: 0,
+    "Devil Advocate": 0,
+  };
+  player.answers.forEach((a) => {
+    const q = quiz.find((qq) => qq.text === a.question);
+    for (const type in q.mapping) {
+      characters[type] += q.mapping[type] * a.value;
+    }
+  });
+  return characters;
 }
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+function sendResultsToAll(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+  const results = {};
+
+  for (const id in room.players) {
+    const p = room.players[id];
+    const characters = calculateCharacters(p);
+    const sorted = Object.entries(characters).sort((a, b) => b[1] - a[1]);
+    const primary = sorted[0];
+    const secondary = sorted[1];
+
+    let hybrid = null;
+    if (["Equalizer", "Catalyst"].every((x) => [primary[0], secondary[0]].includes(x)))
+      hybrid = "The Balancer";
+    else if (
+      ["Bridgebuilder", "Devil Advocate"].every((x) =>
+        [primary[0], secondary[0]].includes(x)
+      )
+    )
+      hybrid = "The Visionary Advocate";
+    else if (
+      ["Catalyst", "Devil Advocate"].every((x) =>
+        [primary[0], secondary[0]].includes(x)
+      )
+    )
+      hybrid = "The Firestarter";
+    else if (
+      ["Equalizer", "Bridgebuilder"].every((x) =>
+        [primary[0], secondary[0]].includes(x)
+      )
+    )
+      hybrid = "The Reformer";
+
+    results[id] = { characters, topTwo: [primary, secondary], hybrid };
+  }
+
+  for (const id in results) io.to(id).emit("showResults", results[id]);
+  io.to(roomId).emit("allResults", results);
+}
+
+// --- Start server ---
+const PORT = process.env.PORT || 2011;
+server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
