@@ -42,9 +42,6 @@ export default function PlayerPage() {
     "/avatars/avatar1.png",
     "/avatars/avatar2.png",
     "/avatars/avatar3.png",
-    "/avatars/avatar4.png",
-    "/avatars/avatar5.png",
-    "/avatars/avatar6.png"
   ];
 
   // 🔹 Socket listeners
@@ -69,7 +66,6 @@ export default function PlayerPage() {
       const labels = Object.keys(res.characters);
       const values = Object.values(res.characters);
 
-      // 3D look for radar chart
       const gradient = ctx.createLinearGradient(0, 0, 0, 400);
       gradient.addColorStop(0, "rgba(255,140,66,0.6)");
       gradient.addColorStop(1, "rgba(255,140,66,0.1)");
@@ -354,22 +350,29 @@ export default function PlayerPage() {
             {question.text}
           </div>
 
+          {/* 🔹 Updated animated buttons */}
           <div
             style={{
               marginTop: 20,
               display: "flex",
-              flexDirection: "column", // stacked buttons for mobile
+              flexDirection: "column",
               alignItems: "center",
-              gap: 15
+              gap: 15,
+              width: "100%",
             }}
           >
             {["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"].map((label, i) => (
               <button
                 key={i}
-                onClick={() => answerQuestion(i + 1)}
+                onClick={(e) => {
+                  if (!muted) clickSound.play();
+                  answerQuestion(i + 1);
+                  e.currentTarget.classList.add("clicked");
+                  setTimeout(() => e.currentTarget.classList.remove("clicked"), 400);
+                }}
                 style={{
-                  width: "80%",
-                  maxWidth: 400,
+                  width: "90%",
+                  maxWidth: 350,
                   padding: "16px 0",
                   borderRadius: 15,
                   color: "#fff",
@@ -378,7 +381,7 @@ export default function PlayerPage() {
                   background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
                   boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
                   cursor: "pointer",
-                  transition: "transform 0.15s"
+                  transition: "transform 0.2s ease, box-shadow 0.3s ease",
                 }}
                 onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                 onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
@@ -386,16 +389,38 @@ export default function PlayerPage() {
                 {label}
               </button>
             ))}
+
+            <style>
+              {`
+                @media (max-width: 480px) {
+                  button {
+                    width: 95% !important;
+                    font-size: 1em !important;
+                    padding: 14px 0 !important;
+                  }
+                }
+
+                .clicked {
+                  transform: scale(0.95);
+                  box-shadow: 0 0 15px rgba(255, 140, 66, 0.7) !important;
+                  animation: bounce-glow 0.4s ease;
+                }
+
+                @keyframes bounce-glow {
+                  0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 140, 66, 0); }
+                  40% { transform: scale(0.93); box-shadow: 0 0 15px rgba(255, 140, 66, 0.7); }
+                  100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 140, 66, 0); }
+                }
+              `}
+            </style>
           </div>
         </div>
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-
-          {/* Result Image */}
           <div style={{ margin: "15px 0" }}>
             <img
-              src="/images/result-banner.png" // your banner image
+              src="/images/result-banner.png"
               alt="Result"
               style={{
                 width: "80%",
@@ -434,6 +459,7 @@ export default function PlayerPage() {
               {results.topTwo[1][0]}
             </Link>
           </p>
+
           {results.hybrid && (
             <p>
               Hybrid:{" "}
@@ -495,7 +521,6 @@ export default function PlayerPage() {
         <p>{message}</p>
       )}
 
-      {/* Shared List */}
       {sharedList.length > 0 && (
         <div style={{ position: "absolute", bottom: 20, left: 20 }}>
           <h4>Shared Top Characters:</h4>
