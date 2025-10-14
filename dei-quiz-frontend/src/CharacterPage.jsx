@@ -105,8 +105,8 @@ export default function CharacterPage() {
       </div>
 
       {/* ✅ Back button inside JSX */}
-        <button
-        onClick={() => navigate(`/player/${roomId}`, { state: { results } })} // navigate to PlayerPage
+      <button
+        onClick={() => navigate(-1)} // go back to previous page
         style={{
           display: "inline-block",
           marginTop: 30,
@@ -121,6 +121,7 @@ export default function CharacterPage() {
       >
         Back to Quiz
       </button>
+
     </div>
   );
 }
