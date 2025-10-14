@@ -499,23 +499,8 @@ export default function PlayerPage() {
                 margin: "auto"
               }}
             />
-          </div>
-
-          <button
-            onClick={() => navigate(`/player/${roomId}`, { state: { results } })}
-            style={{
-              marginTop: 25,
-              padding: "10px 25px",
-              borderRadius: 20,
-              border: "1px solid #dcd0c0",
-              background: "#fff",
-              color: "#5e4033",
-              cursor: "pointer",
-              boxShadow: "1px 2px 6px rgba(0,0,0,0.1)"
-            }}
-          >
-            ⬅ Back
-          </button>
+                   </div>
+ 
         </div>
       ) : (
         <p>{message}</p>
