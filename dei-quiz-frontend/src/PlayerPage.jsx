@@ -361,7 +361,7 @@ export default function PlayerPage() {
               width: "100%",
             }}
           >
-            {["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"].map((label, i) => (
+            {["Strongly Agree", "Agree", "Disagree", "Strongly Disagree"].map((label, i) => (
               <button
                 key={i}
                 onClick={(e) => {
@@ -374,7 +374,7 @@ export default function PlayerPage() {
                   width: "90%",
                   maxWidth: 350,
                   padding: "16px 0",
-                  borderRadius: 15,
+                  borderRadius: 20,
                   color: "#fff",
                   fontSize: "1.1em",
                   border: "none",
