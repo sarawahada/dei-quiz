@@ -290,7 +290,21 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-          <p>Top Character: {results.topTwo[0][0]}</p>
+         <div style={{ marginTop: 20 }}>
+          <h4>Top Character: {results.topTwo[0][0]}</h4>
+            <img
+        src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
+        alt={results.topTwo[0][0]}
+        style={{
+          width: 140,
+          height: 140,
+          borderRadius: "50%",
+          objectFit: "cover",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          marginTop: 10
+        }}
+      />
+        </div>
           <p>Secondary: {results.topTwo[1][0]}</p>
           {results.hybrid && <p>Hybrid: {results.hybrid}</p>}
 
@@ -372,7 +386,7 @@ export default function PlayerPage() {
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            background: "linear-gradient(to bottom, #fbe9e7, #fffaf8)",
+            background: "linear-gradient(to bottom,rgb(231, 247, 251),rgb(248, 253, 255))",
             overflow: "hidden",
             position: "relative"
           }}
@@ -381,7 +395,7 @@ export default function PlayerPage() {
             style={{
               color: "#5e4033",
               fontSize: "1.6em",
-              textShadow: "0 0 15px rgba(255,200,150,0.8)",
+              textShadow: "0 0 15px rgba(167, 230, 247, 0.8)",
               animation: "glow 2s infinite alternate"
             }}
           >
