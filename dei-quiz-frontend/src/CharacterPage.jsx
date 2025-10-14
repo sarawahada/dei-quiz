@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Chart,
   RadarController,
@@ -13,46 +13,17 @@ import {
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const characterData = {
-  Equalizer: {
-    strengths: ["Fair-minded", "Good listener", "Balances conflicts"],
-    weaknesses: ["Avoids confrontation", "Indecisive"],
-    scores: { Empathy: 4, Strategy: 3, Innovation: 2, Analysis: 3 }
-  },
-  Bridgebuilder: {
-    strengths: ["Connects people", "Facilitates collaboration", "Strong networker"],
-    weaknesses: ["Overcommits", "Puts others first"],
-    scores: { Empathy: 4, Strategy: 3, Innovation: 3, Analysis: 2 }
-  },
-  Catalyst: {
-    strengths: ["Innovative", "Energetic", "Motivates others"],
-    weaknesses: ["Impatient", "Acts before planning"],
-    scores: { Empathy: 3, Strategy: 3, Innovation: 4, Analysis: 2 }
-  },
-  "Devil Advocate": {
-    strengths: ["Critical thinker", "Challenges assumptions", "Encourages careful decisions"],
-    weaknesses: ["Can seem negative", "Frustrates team"],
-    scores: { Empathy: 2, Strategy: 3, Innovation: 3, Analysis: 4 }
-  }
-};
-
-const colors = {
-  Equalizer: "#6CC4A1",
-  Bridgebuilder: "#FFB347",
-  Catalyst: "#FF8C42",
-  "Devil Advocate": "#6B8DD6"
-};
-
 export default function CharacterPage() {
-  const { name } = useParams(); // character name from URL
+  const { name, roomId } = useParams(); // now includes roomId
+  const navigate = useNavigate();       // initialize navigate
   const chartRef = useRef(null);
   const [chartInstance, setChartInstance] = useState(null);
 
+  // Fetch character data here (your previous code)
   const char = characterData[name];
 
   useEffect(() => {
     if (!char) return;
-
     if (chartInstance) chartInstance.destroy();
 
     const ctx = chartRef.current.getContext("2d");
@@ -95,7 +66,7 @@ export default function CharacterPage() {
     return (
       <div style={{ textAlign: "center", padding: 40 }}>
         <h2>Character not found</h2>
-        <Link to="/">Go Back</Link>
+        <button onClick={() => navigate(`/player/${roomId}`)}>Go Back</button>
       </div>
     );
   }
@@ -127,27 +98,15 @@ export default function CharacterPage() {
 
       <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "left" }}>
         <h3>Strengths:</h3>
-        <ul>
-          {char.strengths.map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-        </ul>
+        <ul>{char.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
 
         <h3>Weaknesses:</h3>
-        <ul>
-          {char.weaknesses.map((w, i) => (
-            <li key={i}>{w}</li>
-          ))}
-        </ul>
+        <ul>{char.weaknesses.map((w, i) => <li key={i}>{w}</li>)}</ul>
       </div>
 
-      // Inside your component
-      const navigate = useNavigate();
-      const { roomId } = useParams();
-
-      // Replace your Link with a button
+      {/* ✅ Back button inside JSX */}
       <button
-        onClick={() => navigate(`/player/${roomId}`, { state: { results } })}
+        onClick={() => navigate(`/player/${roomId}`, { state: { results } })// navigate to PlayerPage
         style={{
           display: "inline-block",
           marginTop: 30,
