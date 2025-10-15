@@ -5,7 +5,7 @@ export default function QuestionCard({ question, socket }) {
   const colors = ["bg-pink-400","bg-yellow-300","bg-green-400","bg-blue-400"];
 
   const handleAnswer = (value) => {
-    socket.emit("answer",{ question: question.text, value });
+    socket.emit("answer",{ question: question.text, value: value + 1 }); // Convert 0-3 to 1-4
   };
 
   return (

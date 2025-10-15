@@ -174,12 +174,28 @@ function calculateCharacters(player) {
     Catalyst: 0,
     "Devil Advocate": 0,
   };
+  
   player.answers.forEach((a) => {
     const q = quiz.find((qq) => qq.text === a.question);
+    if (!q) return;
+    
+    // Convert answer value (1-4) to multiplier (-1.5 to +1.5)
+    // 1 = Strongly Disagree (-1.5), 2 = Disagree (-0.5), 3 = Agree (+0.5), 4 = Strongly Agree (+1.5)
+    const multiplier = (a.value - 2.5) / 1.5; // This converts 1-4 to -1 to +1 range
+    
     for (const type in q.mapping) {
-      characters[type] += q.mapping[type] * a.value;
+      characters[type] += q.mapping[type] * multiplier;
     }
   });
+  
+  // Ensure all values are positive for display
+  const minValue = Math.min(...Object.values(characters));
+  if (minValue < 0) {
+    for (const type in characters) {
+      characters[type] -= minValue;
+    }
+  }
+  
   return characters;
 }
 
