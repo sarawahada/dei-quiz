@@ -16,6 +16,11 @@ const io = new Server(server, { cors: { origin: "*" } });
 let rooms = {};
 let timers = {};
 
+// Health check endpoint for Render.com
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
