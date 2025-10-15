@@ -288,10 +288,15 @@ export default function PlayerPage() {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            {[1, 2, 3, 4].map((v, i) => (
+            {[
+              { value: 1, label: "Strongly Disagree", color: "#FF8C42" },
+              { value: 2, label: "Disagree", color: "#FFB347" },
+              { value: 3, label: "Agree", color: "#6CC4A1" },
+              { value: 4, label: "Strongly Agree", color: "#6B8DD6" }
+            ].map((option, i) => (
               <button
                 key={i}
-                onClick={() => answerQuestion(v)}
+                onClick={() => answerQuestion(option.value)}
                 style={{
                   margin: 10,
                   padding: "20px 40px",
@@ -299,7 +304,7 @@ export default function PlayerPage() {
                   color: "#fff",
                   fontSize: "1.2em",
                   border: "2px solid #fff",
-                  background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
+                  background: option.color,
                   boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
                   cursor: "pointer",
                   transition: "transform 0.15s"
@@ -307,7 +312,7 @@ export default function PlayerPage() {
                 onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                 onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
-                Option {v}
+                {option.label}
               </button>
             ))}
           </div>
@@ -315,20 +320,22 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-         <div style={{ marginTop: 20 }}>
-          <h4>Top Character: {results.topTwo[0][0]}</h4>
+         <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "20px" }}>
+          <div style={{ textAlign: "center" }}>
+            <h4>Top Character: {results.topTwo[0][0]}</h4>
             <img
-        src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
-        alt={results.topTwo[0][0]}
-        style={{
-          width: 140,
-          height: 140,
-          borderRadius: "50%",
-          objectFit: "cover",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          marginTop: 10
-        }}
-      />
+              src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
+              alt={results.topTwo[0][0]}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: "8px",
+                objectFit: "cover",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                marginTop: 10
+              }}
+            />
+          </div>
         </div>
           <p>Secondary: {results.topTwo[1][0]}</p>
           {results.hybrid && <p>Hybrid: {results.hybrid}</p>}
