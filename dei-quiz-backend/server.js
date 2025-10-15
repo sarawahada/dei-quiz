@@ -16,8 +16,21 @@ const io = new Server(server, { cors: { origin: "*" } });
 let rooms = {};
 let timers = {};
 
+// Health check endpoint for Render.com
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
-app.get("*", (req, res) => {
+
+// Catch-all handler for SPA routing - must be last
+// Use a more compatible approach for newer Express versions
+app.use((req, res, next) => {
+  // Skip API routes and health check
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  // Serve the React app for all other routes
   res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
 });
 
@@ -161,12 +174,28 @@ function calculateCharacters(player) {
     Catalyst: 0,
     "Devil Advocate": 0,
   };
+  
   player.answers.forEach((a) => {
     const q = quiz.find((qq) => qq.text === a.question);
+    if (!q) return;
+    
+    // Convert answer value (1-4) to multiplier (-1.5 to +1.5)
+    // 1 = Strongly Disagree (-1.5), 2 = Disagree (-0.5), 3 = Agree (+0.5), 4 = Strongly Agree (+1.5)
+    const multiplier = (a.value - 2.5) / 1.5; // This converts 1-4 to -1 to +1 range
+    
     for (const type in q.mapping) {
-      characters[type] += q.mapping[type] * a.value;
+      characters[type] += q.mapping[type] * multiplier;
     }
   });
+  
+  // Ensure all values are positive for display
+  const minValue = Math.min(...Object.values(characters));
+  if (minValue < 0) {
+    for (const type in characters) {
+      characters[type] -= minValue;
+    }
+  }
+  
   return characters;
 }
 

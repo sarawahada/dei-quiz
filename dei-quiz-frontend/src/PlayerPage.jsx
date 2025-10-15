@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useParams } from "react-router-dom";
+import AvatarPicker from "./components/AvatarPicker";
 import {
   Chart,
   RadarController,
@@ -14,7 +15,8 @@ import {
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const socket = io("https://dei-quiz1.onrender.com");
+// Use current domain for socket connection
+const socket = io(window.location.origin);
 
 // 🔊 sound effects
 const clickSound = new Audio("/sounds/click.mp3");
@@ -23,6 +25,7 @@ const nextSound = new Audio("/sounds/next.mp3");
 export default function PlayerPage() {
   const { roomId } = useParams();
   const [name, setName] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("");
   const [joined, setJoined] = useState(false);
   const [message, setMessage] = useState("Waiting for host...");
   const [question, setQuestion] = useState(null);
@@ -32,6 +35,13 @@ export default function PlayerPage() {
   const [timer, setTimer] = useState(null);
   const chartRef = useRef(null);
   const [chartInstance, setChartInstance] = useState(null);
+
+  // Define the 3 available avatars
+  const avatars = [
+    "/avatars/avatar1.png",
+    "/avatars/avatar2.png", 
+    "/avatars/avatar3.png"
+  ];
 
   useEffect(() => {
     socket.on("question", (q) => {
@@ -113,9 +123,9 @@ export default function PlayerPage() {
   }, [timer]);
 
   const joinRoom = () => {
-    if (!name) return;
+    if (!name || !selectedAvatar) return;
     clickSound.play();
-    socket.emit("join", { roomId, name, img: "" });
+    socket.emit("join", { roomId, name, img: selectedAvatar });
     setJoined(true);
   };
 
@@ -178,24 +188,39 @@ export default function PlayerPage() {
             border: "1px solid #dcd0c0",
             width: "80%",
             maxWidth: 300,
-            textAlign: "center"
+            textAlign: "center",
+            marginBottom: 20
           }}
         />
+        
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ marginBottom: 15, color: "#5e4033" }}>Choose your avatar:</h3>
+          <AvatarPicker 
+            avatars={avatars} 
+            onSelect={setSelectedAvatar}
+          />
+        </div>
+        
         <div style={{ marginTop: 20 }}>
           <button
             onClick={joinRoom}
+            disabled={!name || !selectedAvatar}
             style={{
               padding: "12px 30px",
               borderRadius: 20,
               border: "none",
-              background: "#FFB347",
+              background: (!name || !selectedAvatar) ? "#ccc" : "#FFB347",
               color: "#fff",
               fontSize: "1.1em",
-              cursor: "pointer",
+              cursor: (!name || !selectedAvatar) ? "not-allowed" : "pointer",
               boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
               transition: "transform 0.2s"
             }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseOver={(e) => {
+              if (name && selectedAvatar) {
+                e.currentTarget.style.transform = "scale(1.05)";
+              }
+            }}
             onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             Join Room
@@ -263,10 +288,15 @@ export default function PlayerPage() {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            {[1, 2, 3, 4].map((v, i) => (
+            {[
+              { value: 1, label: "Strongly Disagree", color: "#FF8C42" },
+              { value: 2, label: "Disagree", color: "#FFB347" },
+              { value: 3, label: "Agree", color: "#6CC4A1" },
+              { value: 4, label: "Strongly Agree", color: "#6B8DD6" }
+            ].map((option, i) => (
               <button
                 key={i}
-                onClick={() => answerQuestion(v)}
+                onClick={() => answerQuestion(option.value)}
                 style={{
                   margin: 10,
                   padding: "20px 40px",
@@ -274,7 +304,7 @@ export default function PlayerPage() {
                   color: "#fff",
                   fontSize: "1.2em",
                   border: "2px solid #fff",
-                  background: ["#FF8C42", "#FFB347", "#6CC4A1", "#6B8DD6"][i],
+                  background: option.color,
                   boxShadow: "2px 4px 6px rgba(0,0,0,0.2)",
                   cursor: "pointer",
                   transition: "transform 0.15s"
@@ -282,7 +312,7 @@ export default function PlayerPage() {
                 onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                 onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
               >
-                Option {v}
+                {option.label}
               </button>
             ))}
           </div>
@@ -290,20 +320,20 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-         <div style={{ marginTop: 20 }}>
-          <h4>Top Character: {results.topTwo[0][0]}</h4>
+         <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "30px" }}>
+          <div style={{ textAlign: "center" }}>
+            <h4>Top Character: {results.topTwo[0][0]}</h4>
             <img
-        src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
-        alt={results.topTwo[0][0]}
-        style={{
-          width: 140,
-          height: 140,
-          borderRadius: "50%",
-          objectFit: "cover",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-          marginTop: 10
-        }}
-      />
+              src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
+              alt={results.topTwo[0][0]}
+              style={{
+                width: 150,
+                height: 150,
+                objectFit: "contain",
+                marginTop: 10
+              }}
+            />
+          </div>
         </div>
           <p>Secondary: {results.topTwo[1][0]}</p>
           {results.hybrid && <p>Hybrid: {results.hybrid}</p>}

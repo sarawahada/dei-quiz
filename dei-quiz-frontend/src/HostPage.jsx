@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { io } from "socket.io-client";
 
-const socket = io("https://dei-quiz1.onrender.com");
+// Use current domain for socket connection
+const socket = io(window.location.origin);
 export default function HostPage() {
   const [roomId, setRoomId] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -41,7 +42,7 @@ export default function HostPage() {
           {/* Only render QR code if roomId exists */}
           {roomId && (
             <QRCodeCanvas
-              value={`https://dei-quiz1.onrender.com/play/${roomId}`}
+              value={`${window.location.origin}/play/${roomId}`}
               size={200}
             />
           )}
