@@ -22,7 +22,13 @@ app.get("/health", (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
-app.get("*", (req, res) => {
+
+// Catch-all handler for SPA routing - must be last
+app.get("/*", (req, res) => {
+  // Skip API routes and health check
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
 });
 
