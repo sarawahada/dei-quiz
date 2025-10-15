@@ -320,18 +320,16 @@ export default function PlayerPage() {
       ) : results ? (
         <div>
           <h3>Your Results</h3>
-         <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "20px" }}>
+         <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "30px" }}>
           <div style={{ textAlign: "center" }}>
             <h4>Top Character: {results.topTwo[0][0]}</h4>
             <img
               src={`/assets/${results.topTwo[0][0].toLowerCase().replace(/\s+/g, "-")}.png`}
               alt={results.topTwo[0][0]}
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: "8px",
-                objectFit: "cover",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                width: 150,
+                height: 150,
+                objectFit: "contain",
                 marginTop: 10
               }}
             />
