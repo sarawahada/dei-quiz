@@ -74,8 +74,8 @@ cd dei-quiz-frontend && npm run dev
 ```
 
 ## Troubleshooting
-- **Build Failures**: Check Node.js version (requires 20.x)
-- **PathError with Express**: Fixed wildcard route compatibility issue (using `/*` instead of `*`)
+- **Build Failures**: Check Node.js version (requires 18-21.x, specified in .nvmrc)
+- **PathError with Express**: Fixed by using `app.use()` middleware instead of wildcard routes
 - **Socket.IO Issues**: Ensure WebSocket connections are allowed
 - **Static File Issues**: Verify frontend build completed successfully
 - **Port Issues**: Render automatically assigns ports via `process.env.PORT`

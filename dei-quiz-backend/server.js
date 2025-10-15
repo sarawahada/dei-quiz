@@ -24,11 +24,13 @@ app.get("/health", (req, res) => {
 app.use(express.static(path.join(__dirname, "../dei-quiz-frontend/dist")));
 
 // Catch-all handler for SPA routing - must be last
-app.get("/*", (req, res) => {
+// Use a more compatible approach for newer Express versions
+app.use((req, res, next) => {
   // Skip API routes and health check
   if (req.path.startsWith('/api') || req.path === '/health') {
     return res.status(404).json({ error: 'Not found' });
   }
+  // Serve the React app for all other routes
   res.sendFile(path.join(__dirname, "../dei-quiz-frontend/dist/index.html"));
 });
 
