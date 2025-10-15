@@ -15,7 +15,8 @@ import {
 
 Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-const socket = io("https://dei-quiz1.onrender.com");
+// Use current domain for socket connection
+const socket = io(window.location.origin);
 
 // 🔊 sound effects
 const clickSound = new Audio("/sounds/click.mp3");
